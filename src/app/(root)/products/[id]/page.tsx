@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Card, CollapsibleSection, ProductGallery, SizePicker } from "@/components";
-import { Heart, ShoppingBag, Star } from "lucide-react";
+import { Heart, Star } from "lucide-react";
 import ColorSwatches from "@/components/ColorSwatches";
 import { getProduct, getProductReviews, getRecommendedProducts, type Review, type RecommendedProduct } from "@/lib/actions/product";
 import { formatCurrency } from "@/lib/utils/currency";
+import AddToCartButton from "@/components/AddToCartButton";
 
 // Force dynamic rendering so we don't try to pre-render product pages at build time (DB required).
 export const dynamic = "force-dynamic";
@@ -148,6 +149,17 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const subtitle =
     product.gender?.label ? `${product.gender.label} Shoes` : undefined;
 
+  const primaryImage =
+    images.find((img) => img.variantId === defaultVariant?.id)?.url ||
+    images
+      .filter((img) => img.variantId === null)
+      .sort((a, b) => {
+        if (a.isPrimary && !b.isPrimary) return -1;
+        if (!a.isPrimary && b.isPrimary) return 1;
+        return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+      })[0]?.url ||
+    null;
+
   return (
     <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <nav className="py-4 text-caption text-dark-700">
@@ -184,10 +196,15 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <SizePicker />
 
           <div className="flex flex-col gap-3">
-            <button className="flex items-center justify-center gap-2 rounded-full bg-dark-900 px-6 py-4 text-body-medium text-light-100 transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-dark-500]">
-              <ShoppingBag className="h-5 w-5" />
-              Add to Bag
-            </button>
+            {displayPrice !== null && (
+              <AddToCartButton
+                productId={product.id}
+                name={product.name}
+                price={displayPrice ?? 0}
+                image={primaryImage}
+                className="w-full"
+              />
+            )}
             <button className="flex items-center justify-center gap-2 rounded-full border border-light-300 px-6 py-4 text-body-medium text-dark-900 transition hover:border-dark-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-dark-500]">
               <Heart className="h-5 w-5" />
               Favorite

@@ -1,66 +1,50 @@
 import React from "react";
+import Link from "next/link";
 import { Card } from "@/components";
-import {getCurrentUser} from "@/lib/auth/actions";
-
-const products = [
-  {
-    id: 1,
-    title: "Air Max Pulse",
-    subtitle: "Men's Shoes",
-    meta: "6 Colour",
-    price: 149.99,
-    imageSrc: "/shoes/shoe-1.jpg",
-    badge: { label: "New", tone: "orange" as const },
-  },
-  {
-    id: 2,
-    title: "Air Zoom Pegasus",
-    subtitle: "Men's Shoes",
-    meta: "4 Colour",
-    price: 129.99,
-    imageSrc: "/shoes/shoe-2.webp",
-    badge: { label: "Hot", tone: "red" as const },
-  },
-  {
-    id: 3,
-    title: "InfinityRN 4",
-    subtitle: "Men's Shoes",
-    meta: "6 Colour",
-    price: 159.99,
-    imageSrc: "/shoes/shoe-3.webp",
-    badge: { label: "Trending", tone: "green" as const },
-  },
-  {
-    id: 4,
-    title: "Metcon 9",
-    subtitle: "Men's Shoes",
-    meta: "3 Colour",
-    price: 139.99,
-    imageSrc: "/shoes/shoe-4.webp",
-  },
-];
+import { getCurrentUser } from "@/lib/auth/actions";
+import { getAllProducts } from "@/lib/actions/product";
+import { formatCurrency } from "@/lib/utils/currency";
 
 const Home = async () => {
   const user = await getCurrentUser();
-
-  console.log('USER:', user);
+  const { products } = await getAllProducts({
+    search: undefined,
+    genderSlugs: [],
+    sizeSlugs: [],
+    colorSlugs: [],
+    brandSlugs: [],
+    categorySlugs: [],
+    priceMin: undefined,
+    priceMax: undefined,
+    priceRanges: [],
+    sort: "newest",
+    page: 1,
+    limit: 6,
+  });
 
   return (
     <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <section aria-labelledby="latest" className="pb-12">
-        <h2 id="latest" className="mb-6 text-heading-3 text-dark-900">
-          Latest shoes
-        </h2>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 id="latest" className="text-heading-3 text-dark-900">
+            Latest shoes
+          </h2>
+          <Link
+            href="/sign-in"
+            className="inline-flex items-center justify-center rounded-full bg-dark-900 px-5 py-2 text-body-medium text-light-100 transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[--color-dark-500]"
+          >
+            Sign in
+          </Link>
+        </div>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((p) => (
             <Card
               key={p.id}
               title={p.title}
-              subtitle={p.subtitle}
-              meta={p.meta}
-              imageSrc={p.imageSrc}
-              price={p.price}
-              badge={p.badge}
+              subtitle={p.subtitle ?? undefined}
+              meta={undefined}
+              imageSrc={p.imageUrl ?? "/shoes/shoe-1.jpg"}
+              price={p.minPrice !== null ? formatCurrency(p.minPrice) : undefined}
               href={`/products/${p.id}`}
             />
           ))}

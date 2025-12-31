@@ -3,15 +3,23 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { getArrayParam, removeParams, toggleArrayParam } from "@/lib/utils/query";
+import { formatCurrency } from "@/lib/utils/currency";
 
 const GENDERS = ["men", "women", "unisex"] as const;
-const SIZES = ["XS", "S", "M", "L", "XL"] as const;
-const COLORS = ["black", "white", "red", "green", "blue", "grey"] as const;
+// Align options with seeded data (sizes 7-12, colors slugs match DB).
+const SIZES = ["7", "8", "9", "10", "11", "12"] as const;
+const COLORS = ["black", "white", "red", "green", "blue", "gray"] as const;
+const formatRangeLabel = (min: number, max?: number | null) => {
+  const minLabel = formatCurrency(min) ?? "€0";
+  const maxLabel = max !== undefined && max !== null ? formatCurrency(max) : undefined;
+  return maxLabel ? `${minLabel} - ${maxLabel}` : `Más de ${minLabel}`;
+};
+
 const PRICES = [
-  { id: "0-50", label: "$0 - $50" },
-  { id: "50-100", label: "$50 - $100" },
-  { id: "100-150", label: "$100 - $150" },
-  { id: "150-", label: "Over $150" },
+  { id: "0-50", label: formatRangeLabel(0, 50) },
+  { id: "50-100", label: formatRangeLabel(50, 100) },
+  { id: "100-150", label: formatRangeLabel(100, 150) },
+  { id: "150-", label: formatRangeLabel(150, null) },
 ] as const;
 
 type GroupKey = "gender" | "size" | "color" | "price";

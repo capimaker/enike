@@ -27,6 +27,10 @@ import {
 
 import { NormalizedProductFilters } from "@/lib/utils/query";
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const isValidUuid = (id: string) => UUID_REGEX.test(id);
+
 type ProductListItem = {
   id: string;
   name: string;
@@ -115,12 +119,27 @@ export async function getAllProducts(filters: NormalizedProductFilters): Promise
     .from(productVariants)
     .where(variantConds.length ? and(...variantConds) : undefined)
     .as("v");
-  const imagesJoin = hasColor
+
+  const imagesBase = db
+    .select({
+      productId: productImages.productId,
+      url: productImages.url,
+      rnBase: sql<number>`row_number() over (partition by ${productImages.productId} order by ${productImages.isPrimary} desc, ${productImages.sortOrder} asc)`.as(
+        "rn_base"
+      ),
+    })
+    .from(productImages)
+    .where(isNull(productImages.variantId))
+    .as("pi_base");
+
+  const imagesColor = hasColor
     ? db
         .select({
           productId: productImages.productId,
           url: productImages.url,
-          rn: sql<number>`row_number() over (partition by ${productImages.productId} order by ${productImages.isPrimary} desc, ${productImages.sortOrder} asc)`.as("rn"),
+          rnColor: sql<number>`row_number() over (partition by ${productImages.productId} order by ${productImages.isPrimary} desc, ${productImages.sortOrder} asc)`.as(
+            "rn_color"
+          ),
         })
         .from(productImages)
         .innerJoin(productVariants, eq(productVariants.id, productImages.variantId))
@@ -130,17 +149,14 @@ export async function getAllProducts(filters: NormalizedProductFilters): Promise
             db.select({ id: colors.id }).from(colors).where(inArray(colors.slug, filters.colorSlugs))
           )
         )
-        .as("pi")
-    : db
-        .select({
-          productId: productImages.productId,
-          url: productImages.url,
-          rn: sql<number>`row_number() over (partition by ${productImages.productId} order by ${productImages.isPrimary} desc, ${productImages.sortOrder} asc)`.as("rn"),
-        })
-        .from(productImages)
-        .where(isNull(productImages.variantId))
-        .as("pi")
+        .as("pi_color")
+    : undefined;
 
+
+  if (variantConds.length) {
+    // Ensure at least one variant matches the variant filters (size/color/price).
+    conds.push(sql`${variantJoin.productId} is not null`);
+  }
 
   const baseWhere = conds.length ? and(...conds) : undefined;
 
@@ -149,7 +165,12 @@ export async function getAllProducts(filters: NormalizedProductFilters): Promise
     maxPrice: sql<number | null>`max(${variantJoin.price})`,
   };
 
-  const imageAgg = sql<string | null>`max(case when ${imagesJoin.rn} = 1 then ${imagesJoin.url} else null end)`;
+  const imageAgg = hasColor
+    ? sql<string | null>`coalesce(
+        max(case when ${imagesColor!.rnColor} = 1 then ${imagesColor!.url} else null end),
+        max(case when ${imagesBase.rnBase} = 1 then ${imagesBase.url} else null end)
+      )`
+    : sql<string | null>`max(case when ${imagesBase.rnBase} = 1 then ${imagesBase.url} else null end)`;
 
   const primaryOrder =
     filters.sort === "price_asc"
@@ -162,7 +183,7 @@ export async function getAllProducts(filters: NormalizedProductFilters): Promise
   const limit = Math.max(1, Math.min(filters.limit, 60));
   const offset = (page - 1) * limit;
 
-  const rows = await db
+  let query = db
     .select({
       id: products.id,
       name: products.name,
@@ -174,7 +195,13 @@ export async function getAllProducts(filters: NormalizedProductFilters): Promise
     })
     .from(products)
     .leftJoin(variantJoin, eq(variantJoin.productId, products.id))
-    .leftJoin(imagesJoin, eq(imagesJoin.productId, products.id))
+    .leftJoin(imagesBase, eq(imagesBase.productId, products.id));
+
+  if (imagesColor) {
+    query = query.leftJoin(imagesColor, eq(imagesColor.productId, products.id));
+  }
+
+  const rows = await query
     .leftJoin(genders, eq(genders.id, products.genderId))
     .leftJoin(brands, eq(brands.id, products.brandId))
     .leftJoin(categories, eq(categories.id, products.categoryId))
@@ -225,6 +252,7 @@ export type FullProduct = {
 };
 
 export async function getProduct(productId: string): Promise<FullProduct | null> {
+  if (!isValidUuid(productId)) return null;
   const rows = await db
     .select({
       productId: products.id,
@@ -399,6 +427,7 @@ export type RecommendedProduct = {
 };
 
 export async function getProductReviews(productId: string): Promise<Review[]> {
+  if (!isValidUuid(productId)) return [];
   const rows = await db
     .select({
       id: reviews.id,
@@ -425,6 +454,7 @@ export async function getProductReviews(productId: string): Promise<Review[]> {
 }
 
 export async function getRecommendedProducts(productId: string): Promise<RecommendedProduct[]> {
+  if (!isValidUuid(productId)) return [];
   const base = await db
     .select({
       id: products.id,

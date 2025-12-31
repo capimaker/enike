@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { formatCurrency } from "@/lib/utils/currency";
 
 export type BadgeTone = "red" | "green" | "orange";
 
@@ -34,6 +35,7 @@ export default function Card({
   badge,
   className = "",
 }: CardProps) {
+  const alt = imageAlt ?? title ?? "Product image";
   const displayPrice =
     price === undefined ? undefined : typeof price === "number" ? formatCurrency(price) : price;
   const content = (
@@ -50,7 +52,7 @@ export default function Card({
         )}
         <Image
           src={imageSrc}
-          alt={imageAlt}
+          alt={alt}
           fill
           sizes="(min-width: 1280px) 360px, (min-width: 1024px) 300px, (min-width: 640px) 45vw, 90vw"
           className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -84,4 +86,3 @@ export default function Card({
     content
   );
 }
-import { formatCurrency } from "@/lib/utils/currency";
