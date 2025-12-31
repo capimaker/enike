@@ -1,12 +1,10 @@
 import React from "react";
 import Link from "next/link";
 import { Card } from "@/components";
-import { getCurrentUser } from "@/lib/auth/actions";
 import { getAllProducts } from "@/lib/actions/product";
 import { formatCurrency } from "@/lib/utils/currency";
 
 const Home = async () => {
-  const user = await getCurrentUser();
   const { products } = await getAllProducts({
     search: undefined,
     genderSlugs: [],
@@ -40,7 +38,7 @@ const Home = async () => {
           {products.map((p) => (
             <Card
               key={p.id}
-              title={p.title}
+              title={p.name}
               subtitle={p.subtitle ?? undefined}
               meta={undefined}
               imageSrc={p.imageUrl ?? "/shoes/shoe-1.jpg"}
