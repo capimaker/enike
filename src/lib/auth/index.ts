@@ -6,6 +6,8 @@ import { v4 as uuidv4 } from "uuid";
 import {nextCookies} from "better-auth/next-js";
 
 const betterAuthSecret = process.env.BETTER_AUTH_SECRET;
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const isBuild = process.env.NEXT_PHASE === "phase-production-build";
 const placeholderSecret = "0123456789abcdefghijklmnopqrstuvwxyzabcd"; // 36 chars for build fallback
 
@@ -28,7 +30,15 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
   },
-  socialProviders: {},
+  socialProviders: {
+    google:
+      googleClientId && googleClientSecret
+        ? {
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          }
+        : undefined,
+  },
   sessions: {
     cookieCache: {
       enabled: true,

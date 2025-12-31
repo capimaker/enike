@@ -17,10 +17,34 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const itemCount = useCartStore((s) => s.getItemCount());
   const [cartCount, setCartCount] = useState(0);
+  const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
     setCartCount(itemCount);
   }, [itemCount]);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const res = await fetch("/api/me");
+        if (!res.ok) return;
+        const data = await res.json();
+        setUserName(data?.user?.name ?? null);
+      } catch (e) {
+        // ignore
+      }
+    };
+    loadUser();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await fetch("/api/sign-out", { method: "POST" });
+      setUserName(null);
+    } catch (e) {
+      // ignore
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-light-100">
@@ -46,12 +70,25 @@ export default function Navbar() {
         </ul>
 
         <div className="hidden items-center gap-6 md:flex">
-          <button className="text-body text-dark-900 transition-colors hover:text-dark-700">
-            Search
-          </button>
           <Link href="/cart" className="text-body text-dark-900 transition-colors hover:text-dark-700">
             My Cart ({cartCount})
           </Link>
+          {userName ? (
+            <div className="flex items-center gap-3">
+              <span className="text-body text-dark-900">Hi, {userName}</span>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="text-body text-dark-700 underline underline-offset-4 hover:text-dark-900"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <Link href="/sign-in" className="text-body text-dark-900 transition-colors hover:text-dark-700">
+              Sign in
+            </Link>
+          )}
         </div>
 
         <button
@@ -87,10 +124,18 @@ export default function Navbar() {
             </li>
           ))}
           <li className="flex items-center justify-between pt-2">
-            <button className="text-body">Search</button>
             <Link href="/cart" className="text-body" onClick={() => setOpen(false)}>
               My Cart ({cartCount})
             </Link>
+            {userName ? (
+              <button className="text-body underline" onClick={() => { handleSignOut(); setOpen(false); }}>
+                Sign out
+              </button>
+            ) : (
+              <Link href="/sign-in" className="text-body" onClick={() => setOpen(false)}>
+                Sign in
+              </Link>
+            )}
           </li>
         </ul>
       </div>
