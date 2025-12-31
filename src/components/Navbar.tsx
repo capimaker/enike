@@ -62,9 +62,11 @@ export default function Navbar() {
           onClick={() => setOpen((v) => !v)}
         >
           <span className="sr-only">Toggle navigation</span>
-          <span className="mb-1 block h-0.5 w-6 bg-dark-900"></span>
-          <span className="mb-1 block h-0.5 w-6 bg-dark-900"></span>
-          <span className="block h-0.5 w-6 bg-dark-900"></span>
+          <span className="flex h-5 w-6 flex-col justify-between">
+            <span className="block h-0.5 w-full rounded bg-dark-900"></span>
+            <span className="block h-0.5 w-full rounded bg-dark-900"></span>
+            <span className="block h-0.5 w-full rounded bg-dark-900"></span>
+          </span>
         </button>
       </nav>
 
